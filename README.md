@@ -2,7 +2,7 @@
 
 Gry i projekty tworzone przez Mieszka i jego tatę.
 
-Strona: https://bartibo.github.io/mieszko/
+Strona: https://mieszko.vibemaster.pl (oraz https://bartibo.github.io/mieszko/)
 
 ## Jak dodać nowy projekt
 
