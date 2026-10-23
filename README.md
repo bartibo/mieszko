@@ -1,6 +1,6 @@
 # Gry Mieszka
 
-Gry i projekty tworzone przez Mieszka i jego tatę.
+Gry zrobione przez Mieszka.
 
 Strona: https://mieszko.vibemaster.pl (oraz https://bartibo.github.io/mieszko/)
 
