@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Morski Łowca: Poszukiwacz Skarbów</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB;
+            font-family: 'Fredoka One', cursive, sans-serif;
+            touch-action: none;
+            user-select: none;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 15px;
+            font-size: 22px;
+            color: white;
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+        .hud-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .world-badge {
+            background: linear-gradient(135deg, #7b1fa2, #311b92);
+            border: 2px solid #ea80fc;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 0 10px rgba(234, 128, 252, 0.4);
+            transition: transform 0.1s;
+        }
+        .world-badge:hover {
+            transform: scale(1.05);
+        }
+        .hud-btn {
+            pointer-events: auto;
+            background: linear-gradient(to bottom, #4db8ff, #0077b6);
+            border: 3px solid #fff;
+            border-radius: 15px;
+            padding: 8px 15px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+            font-family: 'Fredoka One', cursive;
+        }
+        .hud-btn:active {
+            transform: scale(0.95);
+        }
+        .screen {
+            pointer-events: auto;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 30, 60, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 10;
+            transition: opacity 0.3s;
+        }
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .btn {
+            background: linear-gradient(to bottom, #ffcc00, #ff9900);
+            border: 4px solid #fff;
+            border-radius: 30px;
+            padding: 12px 35px;
+            font-size: 22px;
+            color: #333;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            transition: transform 0.1s, box-shadow 0.1s;
+            font-family: 'Fredoka One', cursive;
+            margin-top: 15px;
+        }
+        .btn:active {
+            transform: scale(0.95) translateY(5px);
+            box-shadow: 0 0px 5px rgba(0,0,0,0.5);
+        }
+        .btn-green {
+            background: linear-gradient(to bottom, #2ecc71, #27ae60);
+            color: white;
+        }
+        .title {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #4db8ff;
+            text-shadow: 0 5px 0 #005c99, 0 10px 20px rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background: #004080;
+            border: 5px solid #4db8ff;
+            border-radius: 20px;
+            padding: 20px;
+            width: 95%;
+            max-width: 780px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid #4db8ff;
+            border-radius: 12px;
+            padding: 8px 16px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            font-family: 'Fredoka One', cursive;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: linear-gradient(to bottom, #ffcc00, #ff9900);
+            color: #222;
+            border-color: #fff;
+            box-shadow: 0 0 10px rgba(255,204,0,0.5);
+        }
+
+        .upgrade-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .upgrade-btn {
+            background: #28a745;
+            border: 2px solid #fff;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Fredoka One', cursive;
+        }
+        .upgrade-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .upgrade-btn.equipped {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .collection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .collection-item {
+            background: rgba(0,0,0,0.35);
+            border: 2px solid #4db8ff;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 4px;
+            text-align: center;
+            min-height: 115px;
+            position: relative;
+        }
+        .collection-item.locked {
+            filter: grayscale(100%) brightness(0.4);
+            border-color: #444 !important;
+        }
+        .collection-emoji {
+            font-size: 28px;
+            margin-top: 4px;
+        }
+        .collection-name {
+            font-size: 11px;
+            font-family: sans-serif;
+            font-weight: bold;
+            line-height: 1.1;
+            margin-top: 2px;
+        }
+        .collection-chance {
+            font-size: 9.5px;
+            color: #64dfdf;
+            font-family: sans-serif;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .rarity-badge {
+            font-size: 9px;
+            font-family: sans-serif;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #fff;
+            margin-top: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .tier-1 { border-color: #9e9e9e; }
+        .tier-1 .rarity-badge { background-color: #757575; }
+
+        .tier-2 { border-color: #4caf50; }
+        .tier-2 .rarity-badge { background-color: #2e7d32; }
+
+        .tier-3 { border-color: #ab47bc; }
+        .tier-3 .rarity-badge { background-color: #7b1fa2; }
+
+        .tier-4 { border-color: #ffa726; }
+        .tier-4 .rarity-badge { background-color: #ef6c00; }
+
+        .tier-5 { border-color: #ef5350; }
+        .tier-5 .rarity-badge { background-color: #c62828; }
+
+        .tier-6 { border-color: #00bcd4; }
+        .tier-6 .rarity-badge { background-color: #00838f; background: linear-gradient(135deg, #00bcd4, #3f51b5); }
+
+        .tier-7 { border-color: #ffd700; box-shadow: 0 0 8px rgba(255,215,0,0.6); }
+        .tier-7 .rarity-badge { background: linear-gradient(135deg, #ffe082, #ff8f00); color: #000; text-shadow: none; }
+
+        .tier-8 { 
+            border-color: #ff007f; 
+            box-shadow: 0 0 12px rgba(255, 0, 127, 0.8), inset 0 0 8px rgba(255, 0, 127, 0.4); 
+            animation: pulse-eternal 2s infinite alternate;
+        }
+        .tier-8 .rarity-badge { 
+            background: linear-gradient(135deg, #ff007f, #7928ca, #00dfd8); 
+            color: #fff; 
+            text-shadow: 0 0 3px #000;
+            font-weight: 900;
+        }
+
+        /* Tier 9: Void */
+        .tier-9 { 
+            border-color: #4a00e0; 
+            box-shadow: 0 0 15px rgba(74, 0, 224, 0.8), inset 0 0 10px rgba(142, 45, 226, 0.5);
+            animation: pulse-void 2.5s infinite alternate;
+        }
+        .tier-9 .rarity-badge { 
+            background: linear-gradient(135deg, #000000, #4a00e0, #8e2de2); 
+            color: #d1c4e9; 
+            text-shadow: 0 0 5px #8e2de2;
+            font-weight: 900;
+        }
+
+        /* Tier 10: Blackhole */
+        .tier-10 { 
+            border-color: #000000; 
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.9), inset 0 0 12px rgba(0, 0, 0, 0.9);
+            animation: pulse-blackhole 1.8s infinite alternate;
+        }
+        .tier-10 .rarity-badge { 
+            background: #000000; 
+            color: #e040fb; 
+            border: 1px solid #e040fb;
+            text-shadow: 0 0 6px #e040fb;
+            font-weight: 900;
+        }
+
+        /* Tier 11: Error */
+        .tier-11 { 
+            border-color: #00ff66; 
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.8), inset 0 0 10px rgba(0, 255, 102, 0.5);
+            animation: glitch-border 0.3s infinite;
+        }
+        .tier-11 .rarity-badge { 
+            background: linear-gradient(90deg, #ff0055, #00ff66); 
+            color: #000; 
+            font-weight: 900;
+            text-shadow: 0 0 2px #fff;
+        }
+
+        @keyframes pulse-eternal {
+            0% { box-shadow: 0 0 8px rgba(255, 0, 127, 0.6); }
+            100% { box-shadow: 0 0 18px rgba(0, 223, 216, 0.9); }
+        }
+
+        @keyframes pulse-void {
+            0% { box-shadow: 0 0 10px rgba(74, 0, 224, 0.5); }
+            100% { box-shadow: 0 0 22px rgba(142, 45, 226, 0.95); }
+        }
+
+        @keyframes pulse-blackhole {
+            0% { box-shadow: 0 0 12px rgba(0, 0, 0, 0.8), 0 0 8px rgba(224, 64, 251, 0.4); }
+            100% { box-shadow: 0 0 25px rgba(0, 0, 0, 1), 0 0 18px rgba(224, 64, 251, 0.9); }
+        }
+
+        @keyframes glitch-border {
+            0% { border-color: #ff0055; }
+            50% { border-color: #00ff66; }
+            100% { border-color: #00e5ff; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="ui-layer">
+        <div class="hud">
+            <div>
+                <div>Monety: <span id="scoreDisplay" class="text-yellow-400">0</span> 💰</div>
+                <div class="flex flex-col gap-1 mt-1">
+                    <div class="text-xs bg-black/40 px-3 py-1 rounded-full border border-white/20" id="equippedRodDisplay">Wędka: 🎋 Drewniana Wędka</div>
+                    <div class="text-xs bg-black/40 px-3 py-1 rounded-full border border-white/20" id="equippedBaitDisplay">Przynęta: 🪱 Kawałek Chleba</div>
+                </div>
+            </div>
+            <div class="hud-buttons">
+                <button id="worldBadgeBtn" class="world-badge" onclick="openWorldSelectModal(event)">🌊 Świat 1: Zatoka</button>
+                <button class="hud-btn" onclick="openShop(event)">Sklep</button>
+                <button class="hud-btn" onclick="openIndex(event)">Kolekcja</button>
+                <button class="hud-btn" onclick="openSaveModal(event)">💾 Zapis</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- START SCREEN -->
+    <div id="startScreen" class="screen">
+        <h1 class="title">Morski Łowca</h1>
+        <p class="text-xl mb-4 text-center max-w-md">Kliknij, aby opuścić haczyk! Wyławiaj unikalne skarby z różnych światów, ulepszaj wędki oraz przynęty i zbieraj pełną kolekcję!</p>
+        <button class="btn" onclick="startGame()">Graj Teraz!</button>
+        <button class="btn btn-green mt-2" onclick="openSaveModal(event)">💾 Zapis w Przeglądarce</button>
+    </div>
+
+    <!-- WORLD SELECT MODAL SCREEN -->
+    <div id="worldScreen" class="screen hidden">
+        <div class="modal-content max-w-3xl text-center">
+            <div class="flex justify-between items-center mb-4 border-b border-white/20 pb-2">
+                <h2 class="text-3xl text-yellow-400">Wybór Świata</h2>
+                <button class="hud-btn" onclick="closeModals()">✕ Zamknij</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
+                <!-- World 1 Card -->
+                <div class="bg-blue-900/60 border-2 border-cyan-400 rounded-xl p-4 flex flex-col items-center justify-between shadow-lg">
+                    <div class="text-4xl mb-2">☀️🌊</div>
+                    <h3 class="text-xl font-bold text-cyan-300">Świat 1: Słoneczna Zatoka</h3>
+                    <p class="text-xs text-gray-200 my-2">Ciepłe przybrzeżne wody pełne kolorowych muszli, monety i klasycznych skał oraz skarbów.</p>
+                    <button id="btnSelectWorld1" class="btn text-sm py-2 px-4 mt-2 btn-green" onclick="switchWorld(1)">Graj w Świecie 1</button>
+                </div>
+
+                <!-- World 2 Card -->
+                <div class="bg-indigo-950/80 border-2 border-purple-500 rounded-xl p-4 flex flex-col items-center justify-between shadow-lg relative overflow-hidden">
+                    <div class="text-4xl mb-2">🌌🦑</div>
+                    <h3 class="text-xl font-bold text-purple-300">Świat 2: Głębiny Otchłani</h3>
+                    <p class="text-xs text-gray-200 my-2">Ciemna tajemnicza otchłań morska z bioluminescencyjnymi stworzeniami i zatopionymi wrakami.</p>
+                    <div id="world2LockOverlay" class="text-xs text-yellow-300 font-bold bg-black/60 px-2 py-1 rounded border border-yellow-400/50 my-1">
+                        🔒 Wymaga zakupu za 20 000 💰!
+                    </div>
+                    <button id="btnSelectWorld2" class="btn text-sm py-2 px-4 mt-2" onclick="buyOrSwitchWorld(2)">Kup za 20 000 💰</button>
+                </div>
+
+                <!-- World 3 Card -->
+                <div class="bg-amber-950/80 border-2 border-yellow-500 rounded-xl p-4 flex flex-col items-center justify-between shadow-lg relative overflow-hidden">
+                    <div class="text-4xl mb-2">☄️🌋</div>
+                    <h3 class="text-xl font-bold text-yellow-300">Świat 3: Vulkanica & Kosmos</h3>
+                    <p class="text-xs text-gray-200 my-2">Płonąca otchłań podwodnego wulkanu i gwiezdne relikty nieznanego pochodzenia.</p>
+                    <div id="world3LockOverlay" class="text-xs text-yellow-300 font-bold bg-black/60 px-2 py-1 rounded border border-yellow-400/50 my-1">
+                        🔒 Wymaga zakupu za 500 000 💰!
+                    </div>
+                    <button id="btnSelectWorld3" class="btn text-sm py-2 px-4 mt-2" onclick="buyOrSwitchWorld(3)">Kup za 500 000 💰</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOP MODAL SCREEN -->
+    <div id="shopScreen" class="screen hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-3xl text-yellow-400">Sklep Morskiego Łowcy</h2>
+                <button class="hud-btn" onclick="closeModals()">✕ Zamknij</button>
+            </div>
+            <div class="flex gap-2 mb-4 border-b border-white/20 pb-3">
+                <button id="tabUpgrades" class="tab-btn active" onclick="switchShopTab('upgrades')">Ulepszenia</button>
+                <button id="tabRods" class="tab-btn" onclick="switchShopTab('rods')">Wędki</button>
+                <button id="tabBaits" class="tab-btn" onclick="switchShopTab('baits')">Przynęty</button>
+            </div>
+            <div id="shopTabContent"></div>
+        </div>
+    </div>
+
+    <!-- INDEX / COLLECTION MODAL SCREEN -->
+    <div id="indexScreen" class="screen hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-3xl text-yellow-400">Księga Łupów</h2>
+                <button class="hud-btn" onclick="closeModals()">✕ Zamknij</button>
+            </div>
+            
+            <!-- World Switcher Tabs for Collection -->
+            <div class="flex gap-2 mb-2 border-b border-white/20 pb-2 flex-wrap">
+                <button id="tabWorld1Index" class="tab-btn active" onclick="switchIndexTab(1)">🌊 Świat 1 (<span id="world1Progress">0/0</span>)</button>
+                <button id="tabWorld2Index" class="tab-btn" onclick="switchIndexTab(2)">🌌 Świat 2 (<span id="world2Progress">0/0</span>)</button>
+                <button id="tabWorld3Index" class="tab-btn" onclick="switchIndexTab(3)">☄️ Świat 3 (<span id="world3Progress">0/0</span>)</button>
+            </div>
+
+            <p class="text-xs text-gray-300 mb-2">Wskazane szanse wyliczane są dynamicznie z uwzględnieniem założonej wędki oraz przynęty.</p>
+            <div id="collectionGrid" class="collection-grid"></div>
+        </div>
+    </div>
+
+    <!-- SAVE & LOAD MODAL SCREEN -->
+    <div id="saveScreen" class="screen hidden">
+        <div class="modal-content text-center">
+            <h2 class="text-3xl text-yellow-400 mb-2">Zapis w Pamięci Przeglądarki</h2>
+            <p class="text-sm text-gray-200 mb-4">Gra automatycznie zapisuje Twój postęp w pamięci local storage po każdym złowieniu skarbu oraz zakupie w sklepie.</p>
+
+            <div class="space-y-3 mb-4">
+                <button class="btn btn-green w-full" onclick="manualSaveToLocalStorage()">💾 Zapisz Stan Teraz</button>
+                <button class="hud-btn w-full py-3 bg-blue-600 hover:bg-blue-500" onclick="restoreFromLocalStorage()">↩️ Przywróć Ostatni Zapis</button>
+            </div>
+
+            <div id="saveStatusMsg" class="text-sm font-bold text-yellow-300 h-6"></div>
+
+            <div class="mt-4">
+                <button class="btn" onclick="closeModals()">Wróć do gry</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+                
+                if (type === 'shoot') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'catch') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.linearRampToValueAtTime(800, now + 0.1);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'score') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.setValueAtTime(1200, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'trash') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'buy') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(900, now + 0.2);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                }
+            } catch (e) {
+                console.warn('Audio play error:', e);
+            }
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const startScreen = document.getElementById('startScreen');
+        const shopScreen = document.getElementById('shopScreen');
+        const indexScreen = document.getElementById('indexScreen');
+        const saveScreen = document.getElementById('saveScreen');
+        const worldScreen = document.getElementById('worldScreen');
+
+        let cw, ch;
+        let score = 0;
+        let currentWorld = 1;
+        let indexSelectedWorld = 1;
+        let unlockedItems = new Set();
+        let unlockedWorlds = new Set([1]);
+        let currentShopTab = 'upgrades';
+
+        const ITEM_DB = [
+            // --- ŚWIAT 1 (Świat podstawowy) ---
+            // Tier 1: Common
+            { id: 'boot', name: 'Stary But', value: 1, baseChance: 250, weight: 1.0, size: 28, emoji: '👞', rarityTier: 1, world: 1 },
+            { id: 'can', name: 'Zardzewiała Puszka', value: 2, baseChance: 220, weight: 1.0, size: 26, emoji: '🥫', rarityTier: 1, world: 1 },
+            { id: 'algae', name: 'Morskie Glony', value: 3, baseChance: 200, weight: 0.9, size: 30, emoji: '🌿', rarityTier: 1, world: 1 },
+            { id: 'tire', name: 'Stara Opona', value: 4, baseChance: 180, weight: 1.2, size: 32, emoji: '🛞', rarityTier: 1, world: 1 },
+            { id: 'driftwood', name: 'Kawałek Drewna', value: 5, baseChance: 160, weight: 1.1, size: 30, emoji: '🪵', rarityTier: 1, world: 1 },
+            { id: 'bone', name: 'Rybna Kość', value: 6, baseChance: 140, weight: 0.8, size: 24, emoji: '🦴', rarityTier: 1, world: 1 },
+            { id: 'plastic_bottle', name: 'Plastikowa Butelka', value: 2, baseChance: 210, weight: 0.8, size: 26, emoji: '🍼', rarityTier: 1, world: 1 },
+            { id: 'broken_comb', name: 'Złamany Grzebień', value: 3, baseChance: 190, weight: 0.7, size: 24, emoji: '🪮', rarityTier: 1, world: 1 },
+
+            // Tier 2: Rare
+            { id: 'bottle', name: 'Wiadomość w Butelce', value: 8, baseChance: 160, weight: 1.1, size: 26, emoji: '🍾', rarityTier: 2, world: 1 },
+            { id: 'shell', name: 'Piękna Muszla', value: 12, baseChance: 140, weight: 1.0, size: 24, emoji: '🐚', rarityTier: 2, world: 1 },
+            { id: 'starfish', name: 'Rozgwiazda', value: 16, baseChance: 120, weight: 1.0, size: 26, emoji: '⭐', rarityTier: 2, world: 1 },
+            { id: 'coin', name: 'Stara Moneta', value: 20, baseChance: 100, weight: 0.9, size: 22, emoji: '🪙', rarityTier: 2, world: 1 },
+            { id: 'compass', name: 'Mosiężny Kompas', value: 25, baseChance: 85, weight: 1.2, size: 24, emoji: '🧭', rarityTier: 2, world: 1 },
+            { id: 'anchor', name: 'Zardzewiała Kotwica', value: 30, baseChance: 75, weight: 1.8, size: 35, emoji: '⚓', rarityTier: 2, world: 1 },
+            { id: 'spyglass', name: 'Mosiężna Luneta', value: 35, baseChance: 70, weight: 1.2, size: 26, emoji: '🔭', rarityTier: 2, world: 1 },
+            { id: 'coral', name: 'Czerwony Koralowiec', value: 38, baseChance: 65, weight: 1.1, size: 28, emoji: '🪸', rarityTier: 2, world: 1 },
+
+            // Tier 3: Epic
+            { id: 'pearl', name: 'Perła w Małży', value: 40, baseChance: 38, weight: 1.3, size: 26, emoji: '🦪', rarityTier: 3, world: 1 },
+            { id: 'ring', name: 'Złoty Pierścień', value: 55, baseChance: 28, weight: 1.1, size: 22, emoji: '💍', rarityTier: 3, world: 1 },
+            { id: 'dagger', name: 'Pirat Skrzydlaty Sztylet', value: 70, baseChance: 20, weight: 1.4, size: 28, emoji: '🗡️', rarityTier: 3, world: 1 },
+            { id: 'goblet', name: 'Srebrny Kielich', value: 85, baseChance: 15, weight: 1.5, size: 26, emoji: '🍷', rarityTier: 3, world: 1 },
+            { id: 'pouch', name: 'Mieszek Monet', value: 100, baseChance: 12, weight: 1.6, size: 28, emoji: '💰', rarityTier: 3, world: 1 },
+            { id: 'hourglass', name: 'Złota Klepsydra', value: 110, baseChance: 10, weight: 1.4, size: 28, emoji: '⏳', rarityTier: 3, world: 1 },
+
+            // Tier 4: Legendary
+            { id: 'chest', name: 'Mała Skrzynia Skarbów', value: 120, baseChance: 4.5, weight: 2.2, size: 32, emoji: '🧰', rarityTier: 4, world: 1 },
+            { id: 'crown', name: 'Złota Korona', value: 160, baseChance: 3.0, weight: 2.0, size: 30, emoji: '👑', rarityTier: 4, world: 1 },
+            { id: 'emerald', name: 'Wielki Szmaragd', value: 200, baseChance: 2.0, weight: 1.8, size: 26, emoji: '❇️', rarityTier: 4, world: 1 },
+            { id: 'big_chest', name: 'Złota Skrzynia Skarbów', value: 250, baseChance: 1.0, weight: 3.0, size: 36, emoji: '👑', rarityTier: 4, world: 1 },
+            { id: 'golden_idol', name: 'Inkański Złoty Bożek', value: 275, baseChance: 0.8, weight: 2.4, size: 32, emoji: '🗿', rarityTier: 4, world: 1 },
+
+            // Tier 5: Mythic
+            { id: 'trident', name: 'Trójząb Oceanu', value: 300, baseChance: 0.15, weight: 3.2, size: 34, emoji: '🔱', rarityTier: 5, world: 1 },
+            { id: 'diamond', name: 'Morski Diament', value: 450, baseChance: 0.08, weight: 2.5, size: 28, emoji: '💎', rarityTier: 5, world: 1 },
+            { id: 'neptune_crown', name: 'Korona Neptuna', value: 600, baseChance: 0.04, weight: 3.5, size: 34, emoji: '👑', rarityTier: 5, world: 1 },
+            { id: 'phoenix_egg', name: 'Jajko Morskiego Feniksa', value: 700, baseChance: 0.025, weight: 3.0, size: 30, emoji: '🥚', rarityTier: 5, world: 1 },
+
+            // Tier 6: Celestial
+            { id: 'alien_artifact', name: 'Artefakt Kosmitów', value: 750, baseChance: 0.008, weight: 4.0, size: 32, emoji: '🛸', rarityTier: 6, world: 1 },
+            { id: 'grail', name: 'Święty Graal', value: 1500, baseChance: 0.003, weight: 4.5, size: 32, emoji: '🏆', rarityTier: 6, world: 1 },
+            { id: 'solar_flare', name: 'Słoneczna Kula', value: 2200, baseChance: 0.0015, weight: 4.2, size: 34, emoji: '☀️', rarityTier: 6, world: 1 },
+
+            // Tier 7: Divine
+            { id: 'atlantis_heart', name: 'Serce Atlantydy', value: 3000, baseChance: 0.0008, weight: 5.0, size: 36, emoji: '🔮', rarityTier: 7, world: 1 },
+            { id: 'god_orb', name: 'Kula Światłości', value: 8000, baseChance: 0.0002, weight: 6.0, size: 38, emoji: '🌕', rarityTier: 7, world: 1 },
+            { id: 'zeus_lightning', name: 'Piorun Zeusa', value: 10000, baseChance: 0.0001, weight: 5.5, size: 36, emoji: '⚡', rarityTier: 7, world: 1 },
+
+            // Tier 8: Eternal
+            { id: 'phoenix_feather', name: 'Pióro Wiecznego Feniksa', value: 12000, baseChance: 0.00008, weight: 6.5, size: 36, emoji: '🪶', rarityTier: 8, world: 1 },
+            { id: 'chronos_clock', name: 'Zegar Wieczności Chronosa', value: 18000, baseChance: 0.00004, weight: 7.0, size: 38, emoji: '🕰️', rarityTier: 8, world: 1 },
+            { id: 'infinity_stone', name: 'Kamień Nieskończoności', value: 25000, baseChance: 0.00002, weight: 7.5, size: 36, emoji: '🌌', rarityTier: 8, world: 1 },
+            { id: 'eternal_crown', name: 'Wieczna Korona Oceanu', value: 35000, baseChance: 0.00001, weight: 8.0, size: 40, emoji: '👑', rarityTier: 8, world: 1 },
+            { id: 'nebula_heart', name: 'Serce Wiecznej Mgławicy', value: 50000, baseChance: 0.000005, weight: 9.0, size: 42, emoji: '💖', rarityTier: 8, world: 1 },
+
+            // --- ŚWIAT 2: GŁĘBINY OTCHŁANI ---
+            // Tier 1: Common
+            { id: 'abyss_seaweed', name: 'Ciemne Glony Otchłani', value: 5, baseChance: 220, weight: 1.0, size: 30, emoji: '🪸', rarityTier: 1, world: 2 },
+            { id: 'glowing_jelly', name: 'Świecąca Meduza', value: 6, baseChance: 190, weight: 0.9, size: 28, emoji: '🪼', rarityTier: 1, world: 2 },
+            { id: 'sea_urchin', name: 'Mroczny Jeżowiec', value: 8, baseChance: 170, weight: 1.0, size: 26, emoji: '🦔', rarityTier: 1, world: 2 },
+            { id: 'shadow_stone', name: 'Cienisty Kamyk', value: 10, baseChance: 150, weight: 1.2, size: 24, emoji: '🪨', rarityTier: 1, world: 2 },
+
+            // Tier 2: Rare
+            { id: 'angler_fish', name: 'Nogaczyk Głębionowy', value: 22, baseChance: 120, weight: 1.1, size: 30, emoji: '🐡', rarityTier: 2, world: 2 },
+            { id: 'dark_pearl', name: 'Mroczna Perła', value: 32, baseChance: 90, weight: 1.2, size: 26, emoji: '🖤', rarityTier: 2, world: 2 },
+            { id: 'vampire_squid', name: 'Wampirzyca Głębinowa', value: 45, baseChance: 75, weight: 1.1, size: 32, emoji: '🦑', rarityTier: 2, world: 2 },
+            { id: 'glowing_mushroom', name: 'Bioluminescencyjny Grzyb', value: 50, baseChance: 65, weight: 0.9, size: 26, emoji: '🍄', rarityTier: 2, world: 2 },
+
+            // Tier 3: Epic
+            { id: 'abyssal_crystal', name: 'Kryształ Otchłani', value: 75, baseChance: 25, weight: 1.3, size: 28, emoji: '💎', rarityTier: 3, world: 2 },
+            { id: 'sunken_helmet', name: 'Hełm Nurka Głębinowego', value: 95, baseChance: 18, weight: 1.5, size: 32, emoji: '🪖', rarityTier: 3, world: 2 },
+            { id: 'ancient_fossil', name: 'Amonitowy Skamieniałość', value: 120, baseChance: 14, weight: 1.6, size: 30, emoji: '🐚', rarityTier: 3, world: 2 },
+
+            // Tier 4: Legendary
+            { id: 'sunken_sub', name: 'Zatopiona Łódź Podwodna', value: 220, baseChance: 3.5, weight: 2.5, size: 36, emoji: '🛳️', rarityTier: 4, world: 2 },
+            { id: 'void_chest', name: 'Kasetka Cienia', value: 280, baseChance: 2.2, weight: 2.2, size: 34, emoji: '🕋', rarityTier: 4, world: 2 },
+            { id: 'cursed_skull', name: 'Przeklęta Czaszka', value: 340, baseChance: 1.5, weight: 2.0, size: 30, emoji: '💀', rarityTier: 4, world: 2 },
+
+            // Tier 5: Mythic
+            { id: 'kraken_tentacle', name: 'Morfizm Krakena', value: 550, baseChance: 0.12, weight: 3.5, size: 36, emoji: '🐙', rarityTier: 5, world: 2 },
+            { id: 'dark_matter', name: 'Kula Ciemnej Materii', value: 800, baseChance: 0.05, weight: 3.2, size: 32, emoji: '🔮', rarityTier: 5, world: 2 },
+
+            // Tier 6: Celestial
+            { id: 'abyss_eye', name: 'Oko Przedwiecznego', value: 1200, baseChance: 0.006, weight: 4.2, size: 34, emoji: '👁️', rarityTier: 6, world: 2 },
+            { id: 'cosmic_blackhole', name: 'Miniaturowa Czarna Dziura', value: 2500, baseChance: 0.002, weight: 4.8, size: 36, emoji: '🌀', rarityTier: 6, world: 2 },
+
+            // Tier 7: Divine
+            { id: 'leviathan_core', name: 'Rdzeń Lewiatana', value: 5000, baseChance: 0.0005, weight: 5.5, size: 38, emoji: '🌌', rarityTier: 7, world: 2 },
+            { id: 'cthulhu_relic', name: 'Relikt Cthulhu', value: 11000, baseChance: 0.00015, weight: 6.0, size: 40, emoji: '🗿', rarityTier: 7, world: 2 },
+
+            // Tier 8: Eternal
+            { id: 'singularity_stone', name: 'Kamień Osobliwości Otchłani', value: 45000, baseChance: 0.000015, weight: 8.5, size: 40, emoji: '🕳️', rarityTier: 8, world: 2 },
+            { id: 'void_lord_soul', name: 'Dusza Władcy Otchłani', value: 65000, baseChance: 0.000008, weight: 9.0, size: 42, emoji: '👻', rarityTier: 8, world: 2 },
+
+            // Tier 9: Void
+            { id: 'void_fragment', name: 'Odłamek Pustki', value: 75000, baseChance: 0.000005, weight: 9.5, size: 40, emoji: '🌌', rarityTier: 9, world: 2 },
+            { id: 'abyssal_mirror', name: 'Lustro Mrocznej Pustki', value: 100000, baseChance: 0.000003, weight: 10.0, size: 42, emoji: '🪞', rarityTier: 9, world: 2 },
+            { id: 'abyssal_portal', name: 'Wrota Otchłani', value: 120000, baseChance: 0.000002, weight: 9.5, size: 40, emoji: '🌀', rarityTier: 9, world: 2 },
+
+            // Tier 10: Blackhole
+            { id: 'gravitational_singularity', name: 'Kula Czarnej Dziury', value: 200000, baseChance: 0.0000008, weight: 11.0, size: 44, emoji: '🕳️', rarityTier: 10, world: 2 },
+            { id: 'event_horizon', name: 'Horyzont Zdarzeń', value: 350000, baseChance: 0.0000005, weight: 12.0, size: 45, emoji: '⚛️', rarityTier: 10, world: 2 },
+            { id: 'supermassive_core', name: 'Supermasywna Czarna Dziura', value: 500000, baseChance: 0.0000003, weight: 12.5, size: 46, emoji: '🌌', rarityTier: 10, world: 2 },
+
+            // Tier 11: Error
+            { id: 'glitch_cube', name: 'Błędna Kostka Kodowa', value: 650000, baseChance: 0.0000002, weight: 13.0, size: 42, emoji: '👾', rarityTier: 11, world: 2 },
+            { id: 'matrix_corruption', name: 'Korupcja Matrycy [404]', value: 777777, baseChance: 0.00000015, weight: 14.0, size: 44, emoji: '💾', rarityTier: 11, world: 2 },
+            { id: 'null_pointer', name: 'Wskaźnik Null [ERR]', value: 999999, baseChance: 0.0000001, weight: 15.0, size: 44, emoji: '⚠️', rarityTier: 11, world: 2 },
+
+            // --- ŚWIAT 3: VULKANICA & KOSMOS ---
+            // Tier 1: Common
+            { id: 'lava_rock', name: 'Płonący Kamyk Vulkanica', value: 15, baseChance: 200, weight: 1.1, size: 28, emoji: '🪨', rarityTier: 1, world: 3 },
+            { id: 'magma_slug', name: 'Magmowy Ślimak', value: 20, baseChance: 180, weight: 1.0, size: 26, emoji: '🐌', rarityTier: 1, world: 3 },
+            { id: 'ash_cloud', name: 'Obłok Pyłu Wulkanicznego', value: 25, baseChance: 160, weight: 0.8, size: 30, emoji: '☁️', rarityTier: 1, world: 3 },
+
+            // Tier 2: Rare
+            { id: 'obsidian_shard', name: 'Odłamek Obsydianu', value: 80, baseChance: 100, weight: 1.3, size: 28, emoji: '🖤', rarityTier: 2, world: 3 },
+            { id: 'fire_crystal', name: 'Ognisty Kryształ', value: 120, baseChance: 80, weight: 1.2, size: 26, emoji: '🔻', rarityTier: 2, world: 3 },
+            { id: 'starlight_dust', name: 'Gwiezdny Pył Astry', value: 150, baseChance: 60, weight: 1.0, size: 28, emoji: '✨', rarityTier: 2, world: 3 },
+
+            // Tier 3: Epic
+            { id: 'magma_core', name: 'Rdzeń Magmowy', value: 300, baseChance: 22, weight: 1.5, size: 30, emoji: '🔥', rarityTier: 3, world: 3 },
+            { id: 'meteorite_piece', name: 'Meteoryt Kosmiczny', value: 450, baseChance: 15, weight: 1.8, size: 32, emoji: '☄️', rarityTier: 3, world: 3 },
+
+            // Tier 4: Legendary
+            { id: 'dragon_egg', name: 'Jajo Smoka Wulkanicznego', value: 1200, baseChance: 3.0, weight: 2.5, size: 36, emoji: '🥚', rarityTier: 4, world: 3 },
+            { id: 'supernova_shard', name: 'Odłamek Supernowej', value: 2500, baseChance: 1.8, weight: 2.8, size: 34, emoji: '💥', rarityTier: 4, world: 3 },
+
+            // Tier 5: Mythic
+            { id: 'volcano_heart', name: 'Serce Podwodnego Wulkanu', value: 8000, baseChance: 0.1, weight: 3.8, size: 38, emoji: '🌋', rarityTier: 5, world: 3 },
+
+            // Tier 6: Celestial
+            { id: 'galaxy_pendant', name: 'Wisior Galaktyki', value: 25000, baseChance: 0.005, weight: 4.5, size: 36, emoji: '🌌', rarityTier: 6, world: 3 },
+
+            // Tier 7: Divine
+            { id: 'sun_god_shield', name: 'Tarcza Boga Słońca', value: 80000, baseChance: 0.0003, weight: 6.0, size: 40, emoji: '🛡️', rarityTier: 7, world: 3 },
+
+            // Tier 8: Eternal
+            { id: 'cosmic_big_bang', name: 'Miniaturowy Wielki Wybuch', value: 300000, baseChance: 0.00002, weight: 9.0, size: 44, emoji: '💥', rarityTier: 8, world: 3 },
+
+            // Tier 10: Blackhole
+            { id: 'dark_constellation', name: 'Mroczny Gwiazdozbiór', value: 1000000, baseChance: 0.0000005, weight: 12.0, size: 46, emoji: '🌟', rarityTier: 10, world: 3 }
+        ];
+
+        const HOOK_STATE = { IDLE: 0, SHOOTING: 1, RETRACTING: 2 };
+        let hook = {
+            x: 0, y: 0, originX: 0, originY: 0, length: 50, targetLength: 0,
+            angle: Math.PI / 2, baseShootSpeed: 10, baseRetractSpeed: 8,
+            state: HOOK_STATE.IDLE, caughtItem: null
+        };
+
+        let bubbles = [];
+
+        function resizeCanvas() {
+            cw = canvas.width = window.innerWidth || 800;
+            ch = canvas.height = window.innerHeight || 600;
+            if (bubbles && bubbles.length > 0) {
+                bubbles.forEach(b => {
+                    if (b.x > cw) b.x = Math.random() * cw;
+                    if (b.y > ch) b.y = Math.random() * ch;
+                });
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const STATE = { START: 0, PLAYING: 1, MODAL: 2 };
+        let gameState = STATE.START;
+
+        const RARITY_INFO = {
+            1: { name: 'Common', label: 'Powszechny', colorClass: 'tier-1' },
+            2: { name: 'Rare', label: 'Rzadki', colorClass: 'tier-2' },
+            3: { name: 'Epic', label: 'Epicki', colorClass: 'tier-3' },
+            4: { name: 'Legendary', label: 'Legendarny', colorClass: 'tier-4' },
+            5: { name: 'Mythic', label: 'Mityczny', colorClass: 'tier-5' },
+            6: { name: 'Celestial', label: 'Astralny', colorClass: 'tier-6' },
+            7: { name: 'Divine', label: 'Boski', colorClass: 'tier-7' },
+            8: { name: 'Eternal', label: 'Wieczny', colorClass: 'tier-8' },
+            9: { name: 'Void', label: 'Void', colorClass: 'tier-9' },
+            10: { name: 'Blackhole', label: 'Blackhole', colorClass: 'tier-10' },
+            11: { name: 'Error', label: 'Error', colorClass: 'tier-11' }
+        };
+
+        const upgrades = {
+            speed: { name: 'Szybkość Wyciągania', level: 1, max: 10, baseCost: 50, desc: 'Wyciągaj łupy znacznie szybciej.' },
+            value: { name: 'Mnożnik Monet', level: 1, max: 10, baseCost: 100, desc: 'Otrzymujesz więcej monet za każdy wyłowiony przedmiot.' }
+        };
+
+        const RODS = [
+            { id: 'wooden', name: 'Drewniana Wędka', icon: '🎋', cost: 0, bought: true, luckBonus: 0, multiplier: 1, color: '#8B4513', desc: 'Zwykła wędka z bambusa na początek.' },
+            { id: 'fiberglass', name: 'Wędka z Włókna Szklanego', icon: '🎣', cost: 250, bought: false, luckBonus: 5, multiplier: 1.15, color: '#2a9d8f', desc: 'Lekka, elastyczna i solidniejsza.' },
+            { id: 'bone_rod', name: 'Kościana Wędka', icon: '🦴', cost: 500, bought: false, luckBonus: 8, multiplier: 1.25, color: '#e0d6b3', desc: 'Wykonana ze szkieletu morskiego potwora.' },
+            { id: 'carbon', name: 'Karbonowy Kij', icon: '🦯', cost: 850, bought: false, luckBonus: 12, multiplier: 1.35, color: '#333333', desc: 'Lekki materiał gwarantujący większe powodzenie.' },
+            { id: 'silver_rod', name: 'Srebrny Gryf', icon: '🥈', cost: 2000, bought: false, luckBonus: 22, multiplier: 1.6, color: '#c0c0c0', desc: 'Błyszcząca wędka ze srebrnym wykończeniem.' },
+            { id: 'emerald_rod', name: 'Szmaragdowy Wiciokrzew', icon: '❇️', cost: 3500, bought: false, luckBonus: 28, multiplier: 1.8, color: '#50c878', desc: 'Promienieje zieloną energią przynoszącą szczęście.' },
+            { id: 'gold_rod', name: 'Złoty Sprzęt', icon: '🥇', cost: 5000, bought: false, luckBonus: 35, multiplier: 2.0, color: '#ffd700', desc: 'Przyciąga złoto i szlachetne kamienie.' },
+            { id: 'ruby_rod', name: 'Rubinowa Wyciągarka', icon: '🔻', cost: 8000, bought: false, luckBonus: 45, multiplier: 2.4, color: '#e0115f', desc: 'Odbija światło w czeluściach oceanu.' },
+            { id: 'neptune_rod', name: 'Wędka Neptuna', icon: '🔱', cost: 12000, bought: false, luckBonus: 55, multiplier: 2.8, color: '#00b4d8', desc: 'Nasycona boską mocą oceanu.' },
+            { id: 'lava_rod', name: 'Magmowy Kij', icon: '🌋', cost: 18000, bought: false, luckBonus: 70, multiplier: 3.3, color: '#ff4500', desc: 'Stopiona magma przyciąga głębinowe minerały.' },
+            { id: 'cosmic_rod', name: 'Wędka Astralna', icon: '🌌', cost: 30000, bought: false, luckBonus: 85, multiplier: 4.0, color: '#9d4edd', desc: 'Potężna wędka z prosto z kosmosu!' },
+            { id: 'shadow_rod', name: 'Wędka Cienia', icon: '🖤', cost: 45000, bought: false, luckBonus: 110, multiplier: 4.8, color: '#2b1055', desc: 'Działa bezszelestnie w najciemniejszych mrokach.' },
+            { id: 'divine_rod', name: 'Boska Wędka', icon: '✨', cost: 75000, bought: false, luckBonus: 150, multiplier: 6.0, color: '#ffee55', desc: 'Najpotężniejsza wędka w oceanie! Ogromny bonus.' },
+            { id: 'storm_rod', name: 'Kij Burzowy', icon: '⚡', cost: 100000, bought: false, luckBonus: 180, multiplier: 7.2, color: '#00e5ff', desc: 'Naładowana błyskawicami władającymi sztormem.' },
+            { id: 'phoenix_rod', name: 'Wędka Feniksa', icon: '🔥', cost: 200000, bought: false, luckBonus: 260, multiplier: 9.0, color: '#ff6600', desc: 'Palący ogień rozświetla drogę do skarbu.' },
+            { id: 'void_rod', name: 'Otchłanna Wędka', icon: '🕳️', cost: 400000, bought: false, luckBonus: 380, multiplier: 12.0, color: '#120024', desc: 'Przyciąga zakazane obiekty z innej czasoprzestrzeni.' },
+            { id: 'chronos_rod', name: 'Wędka Czasu Chronosa', icon: '⏳', cost: 800000, bought: false, luckBonus: 550, multiplier: 16.0, color: '#d4af37', desc: 'Zatrzymuje czas, wyławiając antyczne artefakty.' },
+            { id: 'eternal_rod', name: 'Wieczna Wędka Nieskończoności', icon: '♾️', cost: 2000000, bought: false, luckBonus: 850, multiplier: 25.0, color: '#ff007f', desc: 'Ostateczny oręż każdego Morskiego Łowcy!' }
+        ];
+
+        let equippedRodId = 'wooden';
+
+        const BAITS = [
+            { id: 'bread', name: 'Kawałek Chleba', icon: '🪱', cost: 0, bought: true, luckBonus: 0, multiplier: 1, desc: 'Podstawowa przynęta. Zwyczajne szanse.' },
+            { id: 'corn', name: 'Słodka Kukurydza', icon: '🌽', cost: 100, bought: false, luckBonus: 3, multiplier: 1.1, desc: 'Niewielki wzrost wartości i szans na skarby.' },
+            { id: 'sardine', name: 'Glazurowana Sardynka', icon: '🐟', cost: 200, bought: false, luckBonus: 6, multiplier: 1.2, desc: 'Smaczna rybka przyciągająca głębinowe znaleziska.' },
+            { id: 'cheese', name: 'Wędzony Ser', icon: '🧀', cost: 350, bought: false, luckBonus: 8, multiplier: 1.25, desc: 'Aromatyczny przysmak dla średnich ryb.' },
+            { id: 'shrimp', name: 'Aromatyczna Krewetka', icon: '🦐', cost: 450, bought: false, luckBonus: 10, multiplier: 1.35, desc: 'Zwiększa szanse na wartościową biżuterię.' },
+            { id: 'octopus', name: 'Świeża Ośmiorniczka', icon: '🐙', cost: 950, bought: false, luckBonus: 16, multiplier: 1.55, desc: 'Kusi głębinowe, rzadkie skarby.' },
+            { id: 'crab', name: 'Szczypce Kraba', icon: '🦀', cost: 1200, bought: false, luckBonus: 19, multiplier: 1.65, desc: 'Przynęta idealna na zatopione metalowe obiekty.' },
+            { id: 'fish_head', name: 'Głowa Ryby', icon: '☠️', cost: 1600, bought: false, luckBonus: 22, multiplier: 1.8, desc: 'Świetny wabiący zapach na antyki.' },
+            { id: 'mushroom', name: 'Świecący Grzyb', icon: '🍄', cost: 2800, bought: false, luckBonus: 30, multiplier: 2.2, desc: 'Świeci w ciemnościach, przyciągając niezwykłe znaleziska.' },
+            { id: 'squid', name: 'Kałamarnica Głębionowa', icon: '🦑', cost: 3500, bought: false, luckBonus: 35, multiplier: 2.4, desc: 'Mydli oczy śmieciom.' },
+            { id: 'deep_shrimp', name: 'Krewetka Głębionowa', icon: '🦞', cost: 4500, bought: false, luckBonus: 40, multiplier: 2.7, desc: 'Specjał ze skraju rowu oceanicznego.' },
+            { id: 'golden_worm', name: 'Pozłacana Robaczyca', icon: '🐛', cost: 6000, bought: false, luckBonus: 48, multiplier: 3.0, desc: 'Lśni w wodzie, znacznie zwiększając wygrane.' },
+            { id: 'spinner', name: 'Złoty Błystek', icon: '✨', cost: 7500, bought: false, luckBonus: 55, multiplier: 3.2, desc: 'Błyszczy na głębokościach.' },
+            { id: 'cosmic_bait', name: 'Kosmiczny Pył', icon: '☄️', cost: 12500, bought: false, luckBonus: 75, multiplier: 4.0, desc: 'Materia spoza Ziemi, przyciągająca rzadkie obiekty.' },
+            { id: 'magic_clover', name: 'Czterolistna Koniczyna', icon: '🍀', cost: 15000, bought: false, luckBonus: 80, multiplier: 4.2, desc: 'Przynosi niesamowity fart przy wyławianiu skarbów.' },
+            { id: 'pearl_bait', name: 'Perła Oceanu', icon: '🔮', cost: 20000, bought: false, luckBonus: 100, multiplier: 5.0, desc: 'Legenda głębin. Przyciąga unikalne artefakty!' },
+            { id: 'star_dust', name: 'Gwiezdna Esencja', icon: '⭐', cost: 35000, bought: false, luckBonus: 120, multiplier: 5.8, desc: 'Przyciąga przedmioty pochodzące ze spadających gwiazd.' },
+            { id: 'dragon_blood', name: 'Krew Smoka Morskiego', icon: '🧪', cost: 85000, bought: false, luckBonus: 200, multiplier: 8.0, desc: 'Kusi mityczne i boskie artefakty.' },
+            { id: 'meteorite_chunk', name: 'Odłamek Meteorytu', icon: '🪨', cost: 180000, bought: false, luckBonus: 320, multiplier: 11.0, desc: 'Generuje pole grawitacyjne przyciągające najcięższe bogactwa.' },
+            { id: 'neptune_ambrosia', name: 'Ambrozja Neptuna', icon: '🍷', cost: 500000, bought: false, luckBonus: 500, multiplier: 18.0, desc: 'Pokarm samych morskich bogów.' },
+            { id: 'eternal_essence', name: 'Wieczna Esencja Stworzenia', icon: '🌌', cost: 1500000, bought: false, luckBonus: 800, multiplier: 30.0, desc: 'Pozwala z łatwością wyławiać artefakty Wieczne!' }
+        ];
+
+        let equippedBaitId = 'bread';
+
+        const SAVE_KEY = 'morski_lowca_save_v2';
+
+        function getSaveData() {
+            return {
+                score: score,
+                currentWorld: currentWorld,
+                unlockedItems: Array.from(unlockedItems),
+                unlockedWorlds: Array.from(unlockedWorlds),
+                equippedRodId: equippedRodId,
+                equippedBaitId: equippedBaitId,
+                upgrades: {
+                    speed: upgrades.speed.level,
+                    value: upgrades.value.level
+                },
+                boughtRods: RODS.filter(r => r.bought).map(r => r.id),
+                boughtBaits: BAITS.filter(b => b.bought).map(b => b.id)
+            };
+        }
+
+        function saveGame() {
+            try {
+                const data = getSaveData();
+                localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+            } catch (e) {
+                console.warn('Nie udało się zapisać w localStorage:', e);
+            }
+        }
+
+        function applySaveData(saveData) {
+            if (!saveData) return false;
+            if (typeof saveData.score === 'number') score = saveData.score;
+            if (typeof saveData.currentWorld === 'number') currentWorld = saveData.currentWorld;
+            if (Array.isArray(saveData.unlockedItems)) unlockedItems = new Set(saveData.unlockedItems);
+            if (Array.isArray(saveData.unlockedWorlds)) unlockedWorlds = new Set(saveData.unlockedWorlds);
+
+            if (saveData.upgrades) {
+                if (saveData.upgrades.speed) upgrades.speed.level = saveData.upgrades.speed;
+                if (saveData.upgrades.value) upgrades.value.level = saveData.upgrades.value;
+            }
+
+            if (Array.isArray(saveData.boughtRods)) {
+                RODS.forEach(r => { if (saveData.boughtRods.includes(r.id)) r.bought = true; });
+            }
+
+            if (Array.isArray(saveData.boughtBaits)) {
+                BAITS.forEach(b => { if (saveData.boughtBaits.includes(b.id)) b.bought = true; });
+            }
+
+            if (saveData.equippedRodId && RODS.some(r => r.id === saveData.equippedRodId && r.bought)) {
+                equippedRodId = saveData.equippedRodId;
+            }
+
+            if (saveData.equippedBaitId && BAITS.some(b => b.id === saveData.equippedBaitId && b.bought)) {
+                equippedBaitId = saveData.equippedBaitId;
+            }
+
+            if (scoreDisplay) scoreDisplay.innerText = score;
+            updateWorldBadge();
+            updateEquipmentHUD();
+            return true;
+        }
+
+        function loadGame() {
+            try {
+                const rawData = localStorage.getItem(SAVE_KEY);
+                if (rawData) {
+                    const parsed = JSON.parse(rawData);
+                    return applySaveData(parsed);
+                }
+            } catch (e) {
+                console.warn('Błąd odczytu z localStorage:', e);
+            }
+            return false;
+        }
+
+        window.addEventListener('beforeunload', () => saveGame());
+        window.addEventListener('pagehide', () => saveGame());
+
+        window.closeModals = function() {
+            if (shopScreen) shopScreen.classList.add('hidden');
+            if (indexScreen) indexScreen.classList.add('hidden');
+            if (saveScreen) saveScreen.classList.add('hidden');
+            if (worldScreen) worldScreen.classList.add('hidden');
+            if (startScreen && startScreen.classList.contains('hidden')) {
+                gameState = STATE.PLAYING;
+            } else {
+                gameState = STATE.START;
+            }
+        };
+
+        window.openSaveModal = function(e) {
+            if(e) e.stopPropagation();
+            gameState = STATE.MODAL;
+            const msg = document.getElementById('saveStatusMsg');
+            if(msg) msg.innerText = '';
+            saveScreen.classList.remove('hidden');
+        };
+
+        window.manualSaveToLocalStorage = function() {
+            saveGame();
+            const msg = document.getElementById('saveStatusMsg');
+            if (msg) msg.innerText = '✅ Stan gry został pomyślnie zapisany w pamięci przeglądarki!';
+        };
+
+        window.restoreFromLocalStorage = function() {
+            const msg = document.getElementById('saveStatusMsg');
+            const success = loadGame();
+            if (success) {
+                if (msg) msg.innerText = '🎉 Przywrócono ostatnio zapisany stan gry!';
+                setTimeout(() => { window.closeModals(); }, 1200);
+            } else {
+                if (msg) msg.innerText = '❌ Nie znaleziono zapisanej gry w pamięci przeglądarki.';
+            }
+        };
+
+        loadGame();
+
+        function updateWorldBadge() {
+            const badge = document.getElementById('worldBadgeBtn');
+            if (badge) {
+                if (currentWorld === 1) {
+                    badge.innerText = '🌊 Świat 1: Zatoka';
+                    badge.className = 'world-badge bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-cyan-300';
+                } else if (currentWorld === 2) {
+                    badge.innerText = '🌌 Świat 2: Otchłań';
+                    badge.className = 'world-badge bg-gradient-to-r from-purple-800 to-indigo-900 text-purple-200 border-purple-400';
+                } else if (currentWorld === 3) {
+                    badge.innerText = '☄️ Świat 3: Vulkanica';
+                    badge.className = 'world-badge bg-gradient-to-r from-red-800 to-amber-700 text-yellow-200 border-yellow-400';
+                }
+            }
+        }
+
+        window.openWorldSelectModal = function(e) {
+            if(e) e.stopPropagation();
+            gameState = STATE.MODAL;
+            
+            const lockMsg2 = document.getElementById('world2LockOverlay');
+            const btnW2 = document.getElementById('btnSelectWorld2');
+            
+            const lockMsg3 = document.getElementById('world3LockOverlay');
+            const btnW3 = document.getElementById('btnSelectWorld3');
+
+            // World 2 Status
+            if (unlockedWorlds.has(2)) {
+                if (lockMsg2) lockMsg2.classList.add('hidden');
+                if (btnW2) {
+                    btnW2.innerText = "Graj w Świecie 2";
+                    btnW2.className = 'btn text-sm py-2 px-4 mt-2 btn-green';
+                }
+            } else {
+                if (lockMsg2) lockMsg2.classList.remove('hidden');
+                if (btnW2) {
+                    btnW2.innerText = "Kup za 20 000 💰";
+                    btnW2.className = score >= 20000 ? 'btn text-sm py-2 px-4 mt-2' : 'btn text-sm py-2 px-4 mt-2 opacity-50 cursor-not-allowed';
+                }
+            }
+
+            // World 3 Status
+            if (unlockedWorlds.has(3)) {
+                if (lockMsg3) lockMsg3.classList.add('hidden');
+                if (btnW3) {
+                    btnW3.innerText = "Graj w Świecie 3";
+                    btnW3.className = 'btn text-sm py-2 px-4 mt-2 btn-green';
+                }
+            } else {
+                if (lockMsg3) lockMsg3.classList.remove('hidden');
+                if (btnW3) {
+                    btnW3.innerText = "Kup za 500 000 💰";
+                    btnW3.className = score >= 500000 ? 'btn text-sm py-2 px-4 mt-2' : 'btn text-sm py-2 px-4 mt-2 opacity-50 cursor-not-allowed';
+                }
+            }
+
+            worldScreen.classList.remove('hidden');
+        };
+
+        window.buyOrSwitchWorld = function(worldId) {
+            const worldCosts = { 2: 20000, 3: 500000 };
+            
+            if (unlockedWorlds.has(worldId)) {
+                currentWorld = worldId;
+                updateWorldBadge();
+                saveGame();
+                window.closeModals();
+            } else if (worldCosts[worldId] && score >= worldCosts[worldId]) {
+                score -= worldCosts[worldId];
+                unlockedWorlds.add(worldId);
+                currentWorld = worldId;
+                if (scoreDisplay) scoreDisplay.innerText = score;
+                playSound('buy');
+                updateWorldBadge();
+                saveGame();
+                window.closeModals();
+            }
+        };
+
+        window.switchWorld = function(worldId) {
+            window.buyOrSwitchWorld(worldId);
+        };
+
+        function initBubbles() {
+            bubbles = [];
+            for (let i = 0; i < 30; i++) {
+                bubbles.push({
+                    x: Math.random() * (cw || window.innerWidth || 800), 
+                    y: Math.random() * (ch || window.innerHeight || 600),
+                    speed: 0.5 + Math.random() * 1.5, size: 2 + Math.random() * 4
+                });
+            }
+        }
+
+        function getEquippedBait() {
+            return BAITS.find(b => b.id === equippedBaitId) || BAITS[0];
+        }
+
+        function getEquippedRod() {
+            return RODS.find(r => r.id === equippedRodId) || RODS[0];
+        }
+
+        function getRandomItem() {
+            const currentBait = getEquippedBait();
+            const currentRod = getEquippedRod();
+            const totalLuck = currentBait.luckBonus + currentRod.luckBonus;
+            
+            // Filtrowanie przedmiotów dopasowanych do aktualnego świata
+            const availableItems = ITEM_DB.filter(item => item.world === currentWorld);
+
+            let totalWeight = 0;
+            const itemWeights = [];
+
+            availableItems.forEach(item => {
+                let weight = item.baseChance;
+
+                if (item.rarityTier >= 3 && totalLuck > 0) {
+                    const tierMultiplier = Math.pow(1.35, item.rarityTier - 2);
+                    weight += (totalLuck * 0.00005 * tierMultiplier);
+                }
+
+                if (item.rarityTier === 1) {
+                    if (totalLuck > 50) {
+                        weight = Math.max(0.1, weight - (totalLuck * 4));
+                    } else if (totalLuck > 10) {
+                        weight = Math.max(5, weight - (totalLuck * 2.5));
+                    }
+                }
+
+                itemWeights.push(weight);
+                totalWeight += weight;
+            });
+
+            let randomNum = Math.random() * totalWeight;
+            let selectedItem = availableItems[0];
+
+            for (let i = 0; i < availableItems.length; i++) {
+                if (randomNum < itemWeights[i]) {
+                    selectedItem = availableItems[i];
+                    break;
+                }
+                randomNum -= itemWeights[i];
+            }
+
+            if (totalLuck > 100 && selectedItem.rarityTier < 2) {
+                const rareItems = availableItems.filter(it => it.rarityTier >= 2);
+                if (rareItems.length > 0) selectedItem = rareItems[Math.floor(Math.random() * rareItems.length)];
+            } else if (totalLuck > 300 && selectedItem.rarityTier < 3) {
+                const epicItems = availableItems.filter(it => it.rarityTier >= 3);
+                if (epicItems.length > 0) selectedItem = epicItems[Math.floor(Math.random() * epicItems.length)];
+            }
+
+            return { ...selectedItem };
+        }
+
+        function handleInput(e) {
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA' || gameState !== STATE.PLAYING) return;
+            if (e.type !== 'keydown') e.preventDefault();
+            
+            if (hook.state === HOOK_STATE.IDLE) {
+                const minDepth = 150;
+                const maxDepth = Math.max(minDepth + 50, (ch || window.innerHeight || 600) - 220);
+                hook.targetLength = Math.random() * (maxDepth - minDepth) + minDepth;
+                hook.state = HOOK_STATE.SHOOTING;
+                playSound('shoot');
+            }
+        }
+        
+        window.addEventListener('mousedown', handleInput);
+        window.addEventListener('touchstart', handleInput, {passive: false});
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'Space') handleInput(e);
+        });
+
+        window.startGame = function() {
+            startScreen.classList.add('hidden');
+            scoreDisplay.innerText = score;
+            
+            hook.originX = (cw || window.innerWidth || 800) / 2;
+            hook.originY = 80;
+            hook.length = 50;
+            hook.state = HOOK_STATE.IDLE;
+            hook.caughtItem = null;
+            
+            initBubbles();
+            updateWorldBadge();
+            
+            gameState = STATE.PLAYING;
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+        };
+
+        window.openShop = function(e) {
+            if(e) e.stopPropagation();
+            gameState = STATE.MODAL;
+            renderShop();
+            shopScreen.classList.remove('hidden');
+        };
+
+        window.switchShopTab = function(tab) {
+            currentShopTab = tab;
+            renderShop();
+        };
+
+        function renderShop() {
+            const content = document.getElementById('shopTabContent');
+            if (!content) return;
+
+            const tabUpgrades = document.getElementById('tabUpgrades');
+            const tabRods = document.getElementById('tabRods');
+            const tabBaits = document.getElementById('tabBaits');
+
+            if (tabUpgrades) tabUpgrades.className = `tab-btn ${currentShopTab === 'upgrades' ? 'active' : ''}`;
+            if (tabRods) tabRods.className = `tab-btn ${currentShopTab === 'rods' ? 'active' : ''}`;
+            if (tabBaits) tabBaits.className = `tab-btn ${currentShopTab === 'baits' ? 'active' : ''}`;
+
+            content.innerHTML = '';
+
+            if (currentShopTab === 'upgrades') {
+                Object.keys(upgrades).forEach(key => {
+                    const upg = upgrades[key];
+                    const cost = upg.level >= upg.max ? 'MAX' : Math.floor(upg.baseCost * Math.pow(1.8, upg.level - 1));
+                    const isMax = upg.level >= upg.max;
+                    const canAfford = typeof cost === 'number' && score >= cost;
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'upgrade-item';
+                    itemDiv.innerHTML = `
+                        <div>
+                            <div class="font-bold text-lg">${upg.name} (Poziom ${upg.level}/${upg.max})</div>
+                            <div class="text-xs text-gray-300">${upg.desc}</div>
+                        </div>
+                        <button class="upgrade-btn" ${(!canAfford || isMax) ? 'disabled' : ''} onclick="buyUpgrade('${key}')">
+                            ${isMax ? 'Maksymalny' : cost + ' 💰'}
+                        </button>
+                    `;
+                    content.appendChild(itemDiv);
+                });
+            } else if (currentShopTab === 'rods') {
+                RODS.forEach(rod => {
+                    const isEquipped = equippedRodId === rod.id;
+                    const canAfford = score >= rod.cost;
+
+                    let btnText = '';
+                    let btnClass = 'upgrade-btn';
+                    let disabled = false;
+
+                    if (isEquipped) {
+                        btnText = 'Założona';
+                        btnClass += ' equipped';
+                        disabled = true;
+                    } else if (rod.bought) {
+                        btnText = 'Załóż';
+                        btnClass += ' bg-blue-600';
+                    } else {
+                        btnText = rod.cost + ' 💰';
+                        if (!canAfford) disabled = true;
+                    }
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'upgrade-item';
+                    itemDiv.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl">${rod.icon}</span>
+                            <div>
+                                <div class="font-bold text-lg" style="color: ${rod.color}">${rod.name}</div>
+                                <div class="text-xs text-gray-300">${rod.desc}</div>
+                                <div class="text-xs text-yellow-300 mt-1">Szczęście: +${rod.luckBonus} | Mnożnik: x${rod.multiplier}</div>
+                            </div>
+                        </div>
+                        <button class="${btnClass}" ${disabled ? 'disabled' : ''} onclick="buyOrEquipRod('${rod.id}')">
+                            ${btnText}
+                        </button>
+                    `;
+                    content.appendChild(itemDiv);
+                });
+            } else if (currentShopTab === 'baits') {
+                BAITS.forEach(bait => {
+                    const isEquipped = equippedBaitId === bait.id;
+                    const canAfford = score >= bait.cost;
+
+                    let btnText = '';
+                    let btnClass = 'upgrade-btn';
+                    let disabled = false;
+
+                    if (isEquipped) {
+                        btnText = 'Założona';
+                        btnClass += ' equipped';
+                        disabled = true;
+                    } else if (bait.bought) {
+                        btnText = 'Załóż';
+                        btnClass += ' bg-blue-600';
+                    } else {
+                        btnText = bait.cost + ' 💰';
+                        if (!canAfford) disabled = true;
+                    }
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'upgrade-item';
+                    itemDiv.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl">${bait.icon}</span>
+                            <div>
+                                <div class="font-bold text-lg text-yellow-200">${bait.name}</div>
+                                <div class="text-xs text-gray-300">${bait.desc}</div>
+                                <div class="text-xs text-cyan-300 mt-1">Szczęście: +${bait.luckBonus} | Mnożnik: x${bait.multiplier}</div>
+                            </div>
+                        </div>
+                        <button class="${btnClass}" ${disabled ? 'disabled' : ''} onclick="buyOrEquipBait('${bait.id}')">
+                            ${btnText}
+                        </button>
+                    `;
+                    content.appendChild(itemDiv);
+                });
+            }
+        }
+
+        window.buyUpgrade = function(key) {
+            const upg = upgrades[key];
+            if (!upg || upg.level >= upg.max) return;
+
+            const cost = Math.floor(upg.baseCost * Math.pow(1.8, upg.level - 1));
+            if (score >= cost) {
+                score -= cost;
+                upg.level++;
+                if (scoreDisplay) scoreDisplay.innerText = score;
+                playSound('buy');
+                saveGame();
+                renderShop();
+            }
+        };
+
+        window.buyOrEquipRod = function(id) {
+            const rod = RODS.find(r => r.id === id);
+            if (!rod) return;
+
+            if (rod.bought) {
+                equippedRodId = rod.id;
+                updateEquipmentHUD();
+                saveGame();
+                renderShop();
+                playSound('buy');
+            } else if (score >= rod.cost) {
+                score -= rod.cost;
+                rod.bought = true;
+                equippedRodId = rod.id;
+                if (scoreDisplay) scoreDisplay.innerText = score;
+                updateEquipmentHUD();
+                playSound('buy');
+                saveGame();
+                renderShop();
+            }
+        };
+
+        window.buyOrEquipBait = function(id) {
+            const bait = BAITS.find(b => b.id === id);
+            if (!bait) return;
+
+            if (bait.bought) {
+                equippedBaitId = bait.id;
+                updateEquipmentHUD();
+                saveGame();
+                renderShop();
+                playSound('buy');
+            } else if (score >= bait.cost) {
+                score -= bait.cost;
+                bait.bought = true;
+                equippedBaitId = bait.id;
+                if (scoreDisplay) scoreDisplay.innerText = score;
+                updateEquipmentHUD();
+                playSound('buy');
+                saveGame();
+                renderShop();
+            }
+        };
+
+        function updateEquipmentHUD() {
+            const rodDisplay = document.getElementById('equippedRodDisplay');
+            const baitDisplay = document.getElementById('equippedBaitDisplay');
+            const rod = getEquippedRod();
+            const bait = getEquippedBait();
+
+            if (rodDisplay) rodDisplay.innerText = `Wędka: ${rod.icon} ${rod.name}`;
+            if (baitDisplay) baitDisplay.innerText = `Przynęta: ${bait.icon} ${bait.name}`;
+        }
+
+        window.openIndex = function(e) {
+            if(e) e.stopPropagation();
+            gameState = STATE.MODAL;
+            indexSelectedWorld = currentWorld; // Default to active world when opening
+            renderIndex();
+            indexScreen.classList.remove('hidden');
+        };
+
+        window.switchIndexTab = function(worldId) {
+            indexSelectedWorld = worldId;
+            renderIndex();
+        };
+
+        function renderIndex() {
+            const grid = document.getElementById('collectionGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            const tab1 = document.getElementById('tabWorld1Index');
+            const tab2 = document.getElementById('tabWorld2Index');
+            const tab3 = document.getElementById('tabWorld3Index');
+            if (tab1) tab1.className = `tab-btn ${indexSelectedWorld === 1 ? 'active' : ''}`;
+            if (tab2) tab2.className = `tab-btn ${indexSelectedWorld === 2 ? 'active' : ''}`;
+            if (tab3) tab3.className = `tab-btn ${indexSelectedWorld === 3 ? 'active' : ''}`;
+
+            // Update Progress Indicators for all worlds
+            const world1Items = ITEM_DB.filter(item => item.world === 1);
+            const world2Items = ITEM_DB.filter(item => item.world === 2);
+            const world3Items = ITEM_DB.filter(item => item.world === 3);
+            
+            const w1Unlocked = world1Items.filter(i => unlockedItems.has(i.id)).length;
+            const w2Unlocked = world2Items.filter(i => unlockedItems.has(i.id)).length;
+            const w3Unlocked = world3Items.filter(i => unlockedItems.has(i.id)).length;
+
+            const prog1 = document.getElementById('world1Progress');
+            const prog2 = document.getElementById('world2Progress');
+            const prog3 = document.getElementById('world3Progress');
+            if (prog1) prog1.innerText = `${w1Unlocked}/${world1Items.length}`;
+            if (prog2) prog2.innerText = `${w2Unlocked}/${world2Items.length}`;
+            if (prog3) prog3.innerText = `${w3Unlocked}/${world3Items.length}`;
+
+            const currentBait = getEquippedBait();
+            const currentRod = getEquippedRod();
+            const totalLuck = currentBait.luckBonus + currentRod.luckBonus;
+            
+            // Filter items by the currently selected collection tab
+            const availableItems = ITEM_DB.filter(item => item.world === indexSelectedWorld);
+
+            let totalWeight = 0;
+            const itemChancesMap = new Map();
+
+            availableItems.forEach(item => {
+                let weight = item.baseChance;
+                if (item.rarityTier >= 3 && totalLuck > 0) {
+                    const tierMultiplier = Math.pow(1.35, item.rarityTier - 2);
+                    weight += (totalLuck * 0.00005 * tierMultiplier);
+                }
+                if (item.rarityTier === 1 && totalLuck > 10) {
+                    weight = Math.max(10, weight - (totalLuck * 2.5));
+                }
+                itemChancesMap.set(item.id, weight);
+                totalWeight += weight;
+            });
+
+            const sortedItems = [...availableItems].sort((a, b) => a.value - b.value);
+
+            sortedItems.forEach(item => {
+                const isUnlocked = unlockedItems.has(item.id);
+                const rarity = RARITY_INFO[item.rarityTier];
+                
+                const itemWeight = itemChancesMap.get(item.id) || 1;
+                const ratio = Math.round(totalWeight / itemWeight);
+                const chanceText = `1 na ${ratio.toLocaleString('pl-PL')}`;
+
+                const div = document.createElement('div');
+                div.className = `collection-item ${rarity.colorClass} ${isUnlocked ? '' : 'locked'}`;
+                
+                div.innerHTML = `
+                    <div class="collection-emoji">${isUnlocked ? item.emoji : '❓'}</div>
+                    <div class="collection-name">${isUnlocked ? item.name : 'Nieodkryte'}</div>
+                    <div class="text-xs text-yellow-300 font-bold mt-1">${isUnlocked ? item.value+'💰' : '???'}</div>
+                    <div class="collection-chance">${chanceText}</div>
+                    <div class="rarity-badge">${rarity.label}</div>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        function gameLoop(timestamp) {
+            requestAnimationFrame(gameLoop);
+            drawBackground();
+            
+            if (gameState === STATE.PLAYING) {
+                update(timestamp);
+            }
+            
+            drawEntities();
+            drawBoatAndUI();
+        }
+
+        function update(timestamp) {
+            bubbles.forEach(b => {
+                b.y -= b.speed;
+                b.x += Math.sin(Date.now() / 500 + b.y) * 0.5;
+                if (b.y < 100) { 
+                    b.y = (ch || window.innerHeight || 600) + 10; 
+                    b.x = Math.random() * (cw || window.innerWidth || 800); 
+                }
+            });
+
+            hook.originX = (cw || window.innerWidth || 800) / 2;
+            hook.angle = Math.PI / 2;
+            
+            const currentShootSpeed = hook.baseShootSpeed + (upgrades.speed.level * 2);
+            const currentBaseRetract = hook.baseRetractSpeed + (upgrades.speed.level * 1.5);
+
+            if (hook.state === HOOK_STATE.IDLE) {
+                hook.length = 50;
+                hook.x = hook.originX;
+                hook.y = hook.originY + hook.length;
+            } 
+            else if (hook.state === HOOK_STATE.SHOOTING) {
+                hook.length += currentShootSpeed;
+                hook.x = hook.originX;
+                hook.y = hook.originY + hook.length;
+                
+                if (hook.length >= hook.targetLength) {
+                    hook.caughtItem = getRandomItem();
+                    hook.state = HOOK_STATE.RETRACTING;
+                    playSound('catch');
+                }
+            }
+            else if (hook.state === HOOK_STATE.RETRACTING) {
+                let retractSpeed = currentBaseRetract;
+                
+                if (!hook.caughtItem) {
+                    hook.caughtItem = getRandomItem();
+                }
+
+                retractSpeed = Math.max(1.5, currentBaseRetract / (hook.caughtItem.weight * 0.6));
+                hook.caughtItem.x = hook.x;
+                hook.caughtItem.y = hook.y + 15;
+                
+                hook.length -= retractSpeed;
+                hook.x = hook.originX;
+                hook.y = hook.originY + hook.length;
+                
+                if (hook.length <= 50) {
+                    if (hook.caughtItem) {
+                        const currentBait = getEquippedBait();
+                        const currentRod = getEquippedRod();
+                        const valueMultiplier = (1 + (upgrades.value.level * 0.2)) * currentBait.multiplier * currentRod.multiplier;
+                        const finalValue = Math.floor(hook.caughtItem.value * valueMultiplier);
+                        
+                        score += finalValue;
+                        if (scoreDisplay) scoreDisplay.innerText = score;
+                        unlockedItems.add(hook.caughtItem.id);
+                        
+                        if(hook.caughtItem.rarityTier === 1) playSound('trash');
+                        else playSound('score');
+                        
+                        saveGame();
+                        hook.caughtItem = null;
+                    }
+                    hook.length = 50;
+                    hook.state = HOOK_STATE.IDLE;
+                }
+            }
+        }
+
+        function drawBackground() {
+            const width = cw || window.innerWidth || 800;
+            const height = ch || window.innerHeight || 600;
+
+            if (currentWorld === 1) {
+                // Świat 1: Słoneczna Zatoka
+                ctx.fillStyle = '#87CEEB';
+                ctx.fillRect(0, 0, width, 100);
+                
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(80, 50, 30, 0, Math.PI*2);
+                ctx.fill();
+                
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.beginPath();
+                ctx.arc(200, 40, 20, 0, Math.PI*2);
+                ctx.arc(230, 40, 25, 0, Math.PI*2);
+                ctx.arc(260, 40, 20, 0, Math.PI*2);
+                ctx.fill();
+
+                const gradient = ctx.createLinearGradient(0, 100, 0, Math.max(101, height));
+                gradient.addColorStop(0, '#00b4d8');
+                gradient.addColorStop(0.5, '#0077b6');
+                gradient.addColorStop(1, '#03045e');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 100, width, height - 100);
+
+                ctx.fillStyle = '#e9c46a';
+                ctx.beginPath();
+                ctx.moveTo(0, height);
+                for(let i=0; i<=width; i+=50) ctx.lineTo(i, height - 20 - Math.sin(i*0.05)*10);
+                ctx.lineTo(width, height);
+                ctx.fill();
+            } else if (currentWorld === 2) {
+                // Świat 2: Głębiny Otchłani
+                ctx.fillStyle = '#0f051d';
+                ctx.fillRect(0, 0, width, 100);
+                
+                // Mroczny księżyc
+                ctx.fillStyle = '#e0aaff';
+                ctx.beginPath();
+                ctx.arc(width - 80, 45, 25, 0, Math.PI*2);
+                ctx.fill();
+
+                const gradient = ctx.createLinearGradient(0, 100, 0, Math.max(101, height));
+                gradient.addColorStop(0, '#240046');
+                gradient.addColorStop(0.4, '#10002b');
+                gradient.addColorStop(1, '#03001e');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 100, width, height - 100);
+
+                // Dno morskie Otchłani
+                ctx.fillStyle = '#10002b';
+                ctx.beginPath();
+                ctx.moveTo(0, height);
+                for(let i=0; i<=width; i+=50) ctx.lineTo(i, height - 30 - Math.cos(i*0.04)*15);
+                ctx.lineTo(width, height);
+                ctx.fill();
+            } else if (currentWorld === 3) {
+                // Świat 3: Vulkanica & Kosmos
+                ctx.fillStyle = '#1a0505';
+                ctx.fillRect(0, 0, width, 100);
+                
+                // Czerwony księżyc / Meteor
+                ctx.fillStyle = '#ff4500';
+                ctx.beginPath();
+                ctx.arc(100, 40, 28, 0, Math.PI*2);
+                ctx.fill();
+
+                const gradient = ctx.createLinearGradient(0, 100, 0, Math.max(101, height));
+                gradient.addColorStop(0, '#3a0ca3');
+                gradient.addColorStop(0.5, '#4a0e17');
+                gradient.addColorStop(1, '#1b0000');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 100, width, height - 100);
+
+                // Dno magmowe
+                ctx.fillStyle = '#d90429';
+                ctx.beginPath();
+                ctx.moveTo(0, height);
+                for(let i=0; i<=width; i+=40) ctx.lineTo(i, height - 25 - Math.sin(i*0.08)*12);
+                ctx.lineTo(width, height);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = currentWorld === 1 ? 'rgba(255, 255, 255, 0.3)' : (currentWorld === 2 ? 'rgba(234, 128, 252, 0.4)' : 'rgba(255, 180, 0, 0.4)');
+            bubbles.forEach(b => {
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.size, 0, Math.PI*2);
+                ctx.fill();
+            });
+        }
+
+        function drawEntities() {
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            if (hook.caughtItem) {
+                ctx.fillStyle = '#000';
+                ctx.font = `${hook.caughtItem.size}px Arial`;
+                ctx.fillText(hook.caughtItem.emoji, hook.caughtItem.x, hook.caughtItem.y);
+            }
+        }
+
+        function drawBoatAndUI() {
+            ctx.strokeStyle = currentWorld === 1 ? '#e0e0e0' : (currentWorld === 2 ? '#ea80fc' : '#ffaa00');
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(hook.originX, hook.originY);
+            ctx.lineTo(hook.x, hook.y);
+            ctx.stroke();
+
+            const currentRod = getEquippedRod();
+            ctx.strokeStyle = currentRod.color;
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(hook.originX - 15, hook.originY - 25);
+            ctx.lineTo(hook.originX, hook.originY);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 4;
+            ctx.save();
+            ctx.translate(hook.x, hook.y);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, 15);
+            ctx.arc(-8, 15, 8, 0, Math.PI);
+            ctx.lineTo(-16, 10);
+            ctx.stroke();
+            ctx.restore();
+
+            const bX = hook.originX;
+            const bY = 90;
+            
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.ellipse(bX, bY + 10, 65, 10, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = currentWorld === 1 ? '#8B4513' : (currentWorld === 2 ? '#3c096c' : '#7f1d1d');
+            ctx.beginPath();
+            ctx.moveTo(bX - 60, bY - 20);
+            ctx.lineTo(bX + 60, bY - 20);
+            ctx.lineTo(bX + 40, bY + 10);
+            ctx.lineTo(bX - 40, bY + 10);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.fillStyle = currentWorld === 1 ? '#A0522D' : (currentWorld === 2 ? '#5a189a' : '#991b1b');
+            ctx.fillRect(bX - 62, bY - 22, 124, 4);
+
+            ctx.fillStyle = '#f1c27d';
+            ctx.beginPath();
+            ctx.arc(bX - 10, bY - 35, 10, 0, Math.PI*2);
+            ctx.fill();
+            
+            ctx.fillStyle = currentWorld === 1 ? '#e63946' : (currentWorld === 2 ? '#9d4edd' : '#d97706');
+            ctx.fillRect(bX - 18, bY - 25, 16, 20);
+            
+            ctx.fillStyle = currentWorld === 1 ? '#ffb703' : (currentWorld === 2 ? '#c77dff' : '#f59e0b');
+            ctx.beginPath();
+            ctx.arc(bX - 10, bY - 38, 12, Math.PI, 0);
+            ctx.fill();
+            ctx.fillRect(bX - 26, bY - 38, 32, 3);
+        }
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
